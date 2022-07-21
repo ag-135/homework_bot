@@ -1,6 +1,6 @@
 from http.client import OK
-import time
 from urllib.error import HTTPError
+import time
 import requests
 import os
 import telegram
@@ -41,17 +41,27 @@ HOMEWORK_STATUSES = {
 
 def send_message(bot, message):
     """Функция отправляет сообщение в telegram."""
-    if not bot.send_message(TELEGRAM_CHAT_ID, message):
-        raise HomeworkError('Произошла ошибка при отправке сообщения')
+    try:
+        bot.send_message(TELEGRAM_CHAT_ID, message)
+    except telegram.TelegramError as error:
+        raise HomeworkError(f'При отправке сообщения произошла '
+                            f'следующая ошибка: {error.msg}')
 
 
 def get_api_answer(current_timestamp):
     """Функция делает запрос к эндпоинту."""
     timestamp = current_timestamp or int(time.time())
-    params = {'from_date': timestamp}
-    response = requests.get(ENDPOINT, headers=HEADERS, params=params)
+    # params = {'from_date': timestamp}
+    api_dict = {
+        'headers': HEADERS,
+        'params': {'from_date': timestamp}
+    }
+    response = requests.get(ENDPOINT, **api_dict)
     if response.status_code != OK:
-        raise HTTPError('Ошибка с получением ответа от сервера')
+        raise HTTPError(f'Ошибка с получением ответа от сервера'
+                        f'Код ошибки: {response.status_code}'
+                        f'Параметры запроса: {ENDPOINT} {api_dict}'
+                        f'{response.content}')
     response = response.json()
     return response
 
@@ -96,7 +106,7 @@ def main():
         logger.critical('Отсутствуют обязательные переменные окружения')
         sys.exit()
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
-    current_timestamp = 1657397999
+    current_timestamp = int(time.time())
     while True:
         try:
             response = get_api_answer(current_timestamp)
