@@ -42,16 +42,18 @@ HOMEWORK_STATUSES = {
 def send_message(bot, message):
     """Функция отправляет сообщение в telegram."""
     try:
+        logger.info('Сообщение отправляется.')
         bot.send_message(TELEGRAM_CHAT_ID, message)
     except telegram.TelegramError as error:
         raise HomeworkError(f'При отправке сообщения произошла '
                             f'следующая ошибка: {error.msg}')
+    else:
+        logger.info('Сообщение отправлено.')
 
 
 def get_api_answer(current_timestamp):
     """Функция делает запрос к эндпоинту."""
     timestamp = current_timestamp or int(time.time())
-    # params = {'from_date': timestamp}
     api_dict = {
         'headers': HEADERS,
         'params': {'from_date': timestamp}
@@ -114,10 +116,7 @@ def main():
             if len(homeworks):
                 for homework in homeworks[::-1]:
                     message = parse_status(homework)
-                    if bot.send_message(TELEGRAM_CHAT_ID, message):
-                        logger.info('Сообщение успешно отправлено')
-                    else:
-                        logger.error('Сообщение не отправлено')
+                    send_message(bot, message)
             else:
                 logger.debug('В ответе отсутствует новый статус')
             current_timestamp = response.get('current_date')
